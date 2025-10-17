@@ -65,7 +65,7 @@ export default function History(props){
         // const recordNum = props.recordLen - curRecord.id;
         return (
             <div className = "history-elementInner">
-                <div className = "history-listNumber">{curRecord.id}</div>
+                <div className = "history-listNumber">{curRecord.id ?? "-"}</div>
                 <div className = "history-listAccount">{curRecord.address}</div>
                 <div className = "history-listOperation">{curRecord.operation}</div>
                 <div className = "history-listValue">{curRecord.value}</div>
@@ -77,40 +77,11 @@ export default function History(props){
         )
     }
 
-    const ListUnitDisplay = (propsUnit) => {
-        const index = propsUnit.index;
-        const unitIdx = props.recordLen - displayNum + index;
-        return (
-            <div className = "history-element">
-                {
-                    // props.recordLen >= index ?
-                    unitIdx >= 1 ?
-                    <RecordDisplay record = {props.recordList[unitIdx]}/>:
-                    null
-                }
-            </div>
-        )
-    }
-
-
-    // const RecordListRender = () => {
-    //     let text = "";
-    //     console.log(props.recordLen);
-    //     if (props.recordLen > 0){
-    //         for (let itr = 1; itr <= props.recordLen; itr ++){
-    //             text = text + ListElement(props.recordList[itr]);
-    //         }
-    //         // text = ListElement(props.recordList[1]);
-    //         console.log(text);
-    //         // text = '<p>why teh hell</p>';
-    //         // console.log(text);
-    //         document.getElementById('RecordList').innerHTML = text;
-    //     }
-    //     // <RecordDisplay record = {props.recordList[0]}/>
-        
-    // }
-
     const HistoryPage = () => {
+        const records = props.recordList ?? [];
+        const limitedRecords = records.slice(-displayNum);
+        const placeholders = Math.max(displayNum - limitedRecords.length, 0);
+
         return (
             <div className = "history-background">
                 <div className = "history">
@@ -119,17 +90,19 @@ export default function History(props){
                         <hr color = "black" width = "100%"/>
                         <Menu />
                         <hr color = "black" width = "100%"/>
-                        
-                        <ListUnitDisplay index = {1}/>
-                        <ListUnitDisplay index = {2}/>
-                        <ListUnitDisplay index = {3}/>
-                        <ListUnitDisplay index = {4}/>
-                        <ListUnitDisplay index = {5}/>
-                        <ListUnitDisplay index = {6}/>
-                        <ListUnitDisplay index = {7}/>
-                        <ListUnitDisplay index = {8}/>
-                        <ListUnitDisplay index = {9}/>
-                        <ListUnitDisplay index = {10}/>
+
+                        {
+                            limitedRecords.map((record, idx) => (
+                                <div className = "history-element" key = {`record-${record.txHash ?? record.id ?? idx}`}>
+                                    <RecordDisplay record = {record}/>
+                                </div>
+                            ))
+                        }
+                        {
+                            Array.from({length: placeholders}).map((_, idx) => (
+                                <div className = "history-element" key = {`placeholder-${idx}`}></div>
+                            ))
+                        }
                     </div>
                 </div>
     

@@ -2,7 +2,8 @@ import {Routes, Route} from "react-router-dom";
 import {useNavigate} from "react-router-dom";
 import {useEffect, useState} from 'react';
 import {ethers} from 'ethers';
-import Web3 from "web3";
+// import Web3 from "web3";
+import { openDb } from "./lib/db";
 
 import './App.css';
 import Login from "./components/login/login";
@@ -12,6 +13,15 @@ import History from "./components/history/history";
 import Leader from "./components/leader/leader";
 import { CONTRACT_ABI, CONTRACT_ADDRESS } from "./contracts/config";
 import { CONTRACT_ABI_2, CONTRACT_ADDRESS_2 } from "./contracts/config_2";
+
+// import something from routes
+import { Navigate } from "react-router-dom";
+import Identity from "./routes/employee/Identity";
+import Vote from "./routes/employee/Vote";
+import Roster from "./routes/hr/Roster";
+import Tree from "./routes/hr/Tree";
+import Election from "./routes/hr/Election";
+import Results from "./routes/Results";
 
 
 export default function App() {
@@ -26,7 +36,7 @@ export default function App() {
     const [storedVal, setStoredVal] = useState(0);              // value that is stored right now. 
     const [showVal, setShowVal] = useState(0);                  // value that is showed on screen. 
 
-    const [historyRecord, setHistoryRecord] = useState(null);   // record of history operations. 
+    const [historyRecord, setHistoryRecord] = useState([]);   // record of history operations. 
     const [recordLen, setRecordLen] = useState(0);              // length of record. 
     const maxRecordLen = 50;                                    // maximum length of record list.                        
 
@@ -40,14 +50,93 @@ export default function App() {
     const [revealOn, setRevealOn] =useState(false);
     const [elected, setElected] = useState(false)
 
+    const [provider, setProvider] = useState(null);
+    const [signer, setSigner] = useState(null);
+    const [contractRead, setContractRead] = useState(null);
+    const [contractWrite, setContractWrite] = useState(null);
+    const [contract2Read, setContract2Read] = useState(null);
+    const [contract2Write, setContract2Write] = useState(null);
 
     
     const navigate = useNavigate();
-    const {ethereum} = window;
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const web3 = new Web3(window.ethereum || "http://localhost:8545");
-    const contract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
-    const contract_2 = new web3.eth.Contract(CONTRACT_ABI_2, CONTRACT_ADDRESS_2);
+
+    const getNetworkLabel = (chainId) => {
+        switch (chainId) {
+            case 1:
+                return "Ethereum Mainnet";
+            case 3:
+                return "Ropsten Test Network";
+            case 4:
+                return "Rinkeby Test Network";
+            case 5:
+                return "Goerli Test Network";
+            case 42:
+                return "Kovan Test Network";
+            case 11155111:
+                return "Sepolia Test Network";
+            default:
+                return `Chain ${chainId}`;
+        }
+    };
+
+    useEffect(() => {
+        (async () => {
+            await openDb(); // ← 第一次跑到这里会：新建空库 -> 执行建表SQL -> 保存到 IndexedDB
+            console.log("DB ready");
+        })();
+
+        if (!window.ethereum) {
+            return;
+        }
+
+        const baseProvider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        setProvider(baseProvider);
+
+        // 只读实例（不用账户也能读）
+        setContractRead(new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, baseProvider));
+        setContract2Read(new ethers.Contract(CONTRACT_ADDRESS_2, CONTRACT_ABI_2, baseProvider));
+
+        const handleChainChanged = () => {
+            setNetwork(null);
+            setIsConnected(false);
+            setAddress(null);
+            setBalance(0);
+            setHistoryRecord([]);
+            setRecordLen(0);
+            navigate("/");
+        };
+
+        const handleAccountsChanged = async (accounts) => {
+            if (!accounts || accounts.length === 0) {
+                handleChainChanged();
+                return;
+            }
+            const nextAddress = ethers.utils.getAddress(accounts[0]);
+            setAddress(nextAddress);
+            setIsConnected(true);
+
+            try {
+                const { chainId } = await baseProvider.getNetwork();
+                setNetwork(getNetworkLabel(chainId));
+                const balanceWei = await baseProvider.getBalance(nextAddress);
+                setBalance(ethers.utils.formatEther(balanceWei));
+                setHistoryRecord([]);
+                setRecordLen(0);
+                fetchRecentTransactions(nextAddress, baseProvider);
+                navigate("/profile");
+            } catch (err) {
+                console.error("Failed to refresh account details", err);
+            }
+        };
+
+        window.ethereum.on?.("chainChanged", handleChainChanged);
+        window.ethereum.on?.("accountsChanged", handleAccountsChanged);
+
+        return () => {
+            window.ethereum?.removeListener("chainChanged", handleChainChanged);
+            window.ethereum?.removeListener("accountsChanged", handleAccountsChanged);
+        };
+    }, [navigate]);
 
 
     // useEffect(() => {
@@ -62,250 +151,272 @@ export default function App() {
     // }, []);
 
 ////// connect to MetaMask. 
-    const connectWallet = async () => {         // function that connect to METAMASK account, activated when clicking on 'connect'. 
+    const connectWallet = async () => {
         try {
-            if (!ethereum){
-                setHaveMetamask(false);
+            const activeProvider = provider ?? new ethers.providers.Web3Provider(window.ethereum, "any");
+            if (!provider) {
+                setProvider(activeProvider);
+                setContractRead(new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, activeProvider));
+                setContract2Read(new ethers.Contract(CONTRACT_ADDRESS_2, CONTRACT_ABI_2, activeProvider));
             }
-            const accounts = await ethereum.request({
-                method: 'eth_requestAccounts',
-            });
-            const chainId = await ethereum.request({
-                method: 'eth_chainId',
-            });
 
-            let balanceVal = await provider.getBalance(accounts[0]);
-            let bal = ethers.utils.formatEther(balanceVal);
+            await activeProvider.send("eth_requestAccounts", []);
+            const s = activeProvider.getSigner();
+            setSigner(s);
 
-            console.log(chainId);
-            if (chainId === '0x3'){
-                setNetwork('Ropsten Test Network');
-            }
-            else if (chainId === '0x5'){
-                setNetwork('Goerli Test Network');
-            }
-            else if (chainId === '0xaa36a7'){
-                setNetwork('Sepolia Test Network');
-            }
-            else {
-                setNetwork('Other Test Network');
-            }
-            setAddress(accounts[0]);
+            const addr = await s.getAddress();
+            const { chainId } = await activeProvider.getNetwork();
+            const bal = ethers.utils.formatEther(await activeProvider.getBalance(addr));
+
+            // 你的 UI 状态
+            setAddress(addr);
             setBalance(bal);
             setIsConnected(true);
+            setNetwork(getNetworkLabel(chainId));
+
+            setHistoryRecord([]);
+            setRecordLen(0);
+            fetchRecentTransactions(addr, activeProvider);
+
+            // 生成“可写合约”实例（带 signer）
+            // setContractWrite(new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, s));
+            // setContract2Write(new ethers.Contract(CONTRACT_ADDRESS_2, CONTRACT_ABI_2, s));
 
             navigate("/profile");
-        }
-        catch (error){
+        } catch (e) {
+            console.error(e);
             setIsConnected(false);
         }
-    }
+    };
 
+    // const connectWallet = async () => {         // function that connect to METAMASK account, activated when clicking on 'connect'. 
+    //     try {
+    //         if (!ethereum){
+    //             setHaveMetamask(false);
+    //         }
+    //         const accounts = await ethereum.request({
+    //             method: 'eth_requestAccounts',
+    //         });
+    //         const chainId = await ethereum.request({
+    //             method: 'eth_chainId',
+    //         });
 
-////// Contract Deployment. 
-    // IMPORTANT: async / await is essential to get values instead of Promise. 
-    const storeData = async (inputVal) => {
-        const res = await contract.methods.set(inputVal).send({from: address});
-        return res;
-    }
+    //         let balanceVal = await provider.getBalance(accounts[0]);
+    //         let bal = ethers.utils.formatEther(balanceVal);
 
-    const getData = async () => {
-        const res = await contract.methods.get().call();
-        return res;
-    }
+    //         console.log(chainId);
+    //         if (chainId === '0x3'){
+    //             setNetwork('Ropsten Test Network');
+    //         }
+    //         else if (chainId === '0x5'){
+    //             setNetwork('Goerli Test Network');
+    //         }
+    //         else if (chainId === '0xaa36a7'){
+    //             setNetwork('Sepolia Test Network');
+    //         }
+    //         else {
+    //             setNetwork('Other Test Network');
+    //         }
+    //         setAddress(accounts[0]);
+    //         setBalance(bal);
+    //         setIsConnected(true);
+
+    //         navigate("/profile");
+    //     }
+    //     catch (error){
+    //         setIsConnected(false);
+    //     }
+    // }
 
     
 ////// history recording. 
-    const RecordOverFlow = () => {
-        if (recordLen > maxRecordLen){
-            let outlierNum = recordLen - maxRecordLen;
-            setHistoryRecord(current => current.splice(1, outlierNum));
-            setRecordLen(maxRecordLen);
-        }
-    }
-
-    const RecordPush = (opr, val, detail) => {
+    const RecordPush = (opr, val, detail = {}) => {
+        const { gasUsed, status: detailStatus, address: recordAddressOverride, timestamp, txHash } = detail || {};
         let stat = 1;
         let cost = 0;
-        if (val.length === 0){
-            val = 'NA';
+        let recordValue = val;
+        let recordAddressLocal = recordAddressOverride || address;
+
+        if (!recordValue || (typeof recordValue === 'string' && recordValue.length === 0)){
+            recordValue = 'NA';
             cost = 'NA';
-            stat = 0;
+            stat = detailStatus ?? 0;
+        }
+        else if (opr === 'get'){
+            cost = 0;
+            stat = 1;
+        }
+        else if (detail === 'null'){
+            setStoredPending(false);
+            setStoredDone(true);
+            cost = 'NA';
+            stat = 2;
         }
         else{
-            if (opr === 'get'){
-                cost = 0;
-                stat = 1;
+            if (gasUsed){
+                cost = gasUsed;
+            }
+            else if (detail && detail.gasUsed){
+                cost = detail.gasUsed;
             }
             else{
-                if (detail === 'null'){
-                    setStoredPending(false);
-                    setStoredDone(true);
-                    console.log('Rejected');
-                    cost = 'NA';
+                cost = 'NA';
+            }
+
+            if (detailStatus !== undefined && detailStatus !== null){
+                if (detailStatus === 0){
+                    stat = 0;
+                }
+                else if (detailStatus === 2){
                     stat = 2;
                 }
                 else{
-                    setStoredDone(true);
-                    console.log('Done');
-                    console.log(detail);    // show the details of transaction. 
-                    cost = detail.gasUsed;
-                    stat = 1;
+                    stat = detailStatus;
                 }
             }
         }
 
-        const newRecord = {
-            id: recordLen + 1, 
-            address: address, 
-            operation: opr, 
-            value: val, 
-            cost: cost, 
-            status: stat
-        };
-        if (recordLen === 0){
-            setHistoryRecord([newRecord, newRecord]);
-        }
-        else{
-            setHistoryRecord(current => [...current, newRecord]);
-        }
-        setRecordLen(recordLen + 1);
-
-        if (recordLen > maxRecordLen){
-            RecordOverFlow();
-        }
+        setHistoryRecord((currentRecords = []) => {
+            const lastId = currentRecords.length > 0 ? currentRecords[currentRecords.length - 1].id : 0;
+            const newRecord = {
+                id: lastId + 1,
+                address: recordAddressLocal,
+                operation: opr,
+                value: recordValue,
+                cost: cost,
+                status: stat,
+                timestamp: timestamp ?? null,
+                txHash: txHash ?? null
+            };
+            const updatedRecords = [...currentRecords, newRecord];
+            const trimmedRecords = updatedRecords.length > maxRecordLen
+                ? updatedRecords.slice(updatedRecords.length - maxRecordLen)
+                : updatedRecords;
+            setRecordLen(trimmedRecords.length);
+            return trimmedRecords;
+        });
     }
 
-////// Leader election
-    const commitValUpdate = async () => {
-        const commitVal = document.getElementById("CommitVal").value;
-        setCommitPending(true);
-        setCommitDone(false);
-        setResetDone(false);
+    const ETHERSCAN_V2_ENDPOINT = "https://api.etherscan.io/v2/api";
 
-        if (commitVal.length !== 0){
-            setElectionOn(true);
-            const [bit,key] = commitVal.split(",").map(Number);
+    const fetchHistoryFromEtherscanV2 = async (chainId, account, apiKey) => {
+        const params = new URLSearchParams({
+            chainid: String(chainId),
+            module: "account",
+            action: "txlist",
+            address: account,
+            startblock: "0",
+            endblock: "99999999",
+            sort: "asc"
+        });
+        if (apiKey && apiKey.length > 0) {
+            params.append("apikey", apiKey);
+        }
+
+        const response = await fetch(`${ETHERSCAN_V2_ENDPOINT}?${params.toString()}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        const payload = await response.json();
+        if (payload.status === "0") {
+            if (payload.message === "No transactions found") {
+                return [];
+            }
+            throw new Error(payload.result || payload.message || "Unknown Etherscan error");
+        }
+        if (!Array.isArray(payload.result)) {
+            throw new Error("Unexpected Etherscan response format");
+        }
+        return payload.result.map(tx => ({
+            hash: tx.hash,
+            from: tx.from,
+            to: tx.to,
+            value: tx.value,
+            timestamp: tx.timeStamp ? Number(tx.timeStamp) : null,
+            gasUsed: tx.gasUsed,
+            status: tx.txreceipt_status === "0" || tx.isError === "1" ? 2 : 1
+        }));
+    };
+
+    const fetchRecentTransactions = async (account, providerInstance) => {
+        if (!account || !providerInstance) {
+            return;
+        }
+        try {
+            const nowSec = Math.floor(Date.now() / 1000);
+            const oneYearSec = 365 * 24 * 60 * 60;
+            const cutoff = nowSec - oneYearSec;
+
+            const network = await providerInstance.getNetwork();
+            const apiKey = process.env.REACT_APP_ETHERSCAN_API_KEY;
+
+            let historyTx = [];
             try {
-                let res = await contract_2.methods.Commit(bit,key).send({from : address});
-                setCommitDone(true);
-            }   
-            catch(err){
-                setCommitDone(false);
-                console.log('error Commit');
+                historyTx = await fetchHistoryFromEtherscanV2(network.chainId, account, apiKey);
+            } catch (etherscanErr) {
+                console.error("Failed to load history via Etherscan V2", etherscanErr);
+                if (typeof providerInstance.getHistory === "function") {
+                    try {
+                        const fallbackHistory = await providerInstance.getHistory(account);
+                        historyTx = fallbackHistory.map(tx => ({
+                            hash: tx.hash,
+                            from: tx.from,
+                            to: tx.to,
+                            value: tx.value,
+                            timestamp: tx.timestamp ?? null,
+                            gasUsed: tx.gasUsed ? tx.gasUsed.toString() : null,
+                            status: tx.confirmations === 0 ? 0 : 1
+                        }));
+                    } catch (fallbackErr) {
+                        console.error("Failed to load history via RPC provider", fallbackErr);
+                        return;
+                    }
+                } else {
+                    return;
+                }
             }
-        }
-        else {
-            console.log('No entry')
-        }
-        setCommitPending(false);
 
-    }
-
-    const revealVal = async () => {
-        const revealVal = document.getElementById('RevealVal').value;
-        setRevealAccepted(false);
-        setRevealPending(true);
-
-        if (revealVal.length !== 0){
-            setRevealPending(true)
-            let [bit,key] = await revealVal.split(",").map(Number);
-            try {
-                let res = await contract_2.methods.Reveal(bit,key).send({from : address});
-                setRevealAccepted(true);
-            }   
-            catch(err){
-                setRevealAccepted(false);
-                console.log('error Reveal');
+            if (!historyTx || historyTx.length === 0) {
+                return;
             }
-        }
-        else {
-            console.log('No entry');
-        }
-        setRevealPending(false)
-    }
 
-    const resetHandle = async () => {
-        try{
-            let res = await contract_2.methods.election_reset().send({from : address});
-            setElectionOn(false)
-            setRevealOn(false)
-            setElected(false)
-        }
-        catch{
-        }
-    }
-    useEffect(()=>{
-        contract_2.events.leader_elected().on("data",() =>{
-            setElected(true)
-        });
-        return () => {
-            contract_2.removeAllListeners("leader_elected")
-        };
-    },[contract_2]);
-
-    useEffect(()=>{
-        contract_2.events.reveal_on().on("data",() =>{
-            setRevealOn(true)
-        });
-        return () => {
-            contract_2.removeAllListeners("reveal_on")
-        };
-    },[contract_2]);
-
-    useEffect(()=>{
-        contract_2.events.reset_done().on("data",() =>{
-            setResetDone(true)
-            setElectionOn(false)
-            setRevealOn(false)
-            setElected(false)
-        });
-        return () => {
-            contract_2.removeAllListeners("reset_done")
-        };
-    },[contract_2]);
-
-    const getLeader = async () => {
-        let res = await contract_2.methods.get_leader().call();
-        return res;
-    }
-////// store and get value. 
-    const storedValUpdate = async () => {
-        const inputVal = document.getElementById('inputVal').value;
-        setStoredPending(false);
-        setStoredDone(false);
-
-        if (inputVal.length === 0) {
-            const detail = 'null';
-            RecordPush('store', inputVal, detail);
-        }
-        else {
-            setStoredPending(true);
-            setStoredVal(inputVal);
-            
-            try{
-                const detail = await storeData(inputVal);   // contract deployed. 
-                RecordPush('store', inputVal, detail);      // recorded. 
+            const filtered = historyTx.filter(tx => (tx.timestamp ?? 0) >= cutoff);
+            if (filtered.length === 0) {
+                return;
             }
-            catch(err){
-                const detail = 'null';                      // no detail info. 
-                RecordPush('store', inputVal, detail);      // recorded. 
+
+            const recent = filtered
+                .slice(-10)
+                .sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
+            const accountLower = account.toLowerCase();
+
+            for (const tx of recent) {
+                const valueEth = ethers.utils.formatEther(tx.value || 0);
+                const isOutgoing = tx.from?.toLowerCase() === accountLower;
+                const directionSign = isOutgoing ? '-' : '+';
+                const formattedValue = `${directionSign}${valueEth} ETH`;
+                const gasUsedRaw = tx.gasUsed ?? null;
+                const gasUsed = gasUsedRaw
+                    ? (typeof gasUsedRaw === 'string' ? gasUsedRaw : gasUsedRaw.toString())
+                    : null;
+                const status = tx.status ?? 1;
+                const relatedAddress = isOutgoing ? (tx.to ?? account) : (tx.from ?? account);
+
+                RecordPush(
+                    'transaction',
+                    formattedValue,
+                    {
+                        gasUsed,
+                        status,
+                        address: relatedAddress,
+                        timestamp: tx.timestamp,
+                        txHash: tx.hash
+                    }
+                );
             }
+        } catch (error) {
+            console.error('Failed to load recent transactions', error);
         }
-    }
-
-    const showValUpdate = async () => {
-        const ans = await getData();
-        setStoredPending(false);
-        setStoredDone(false);
-
-        setShowVal(ans);
-        RecordPush('get', ans);
-    }
-
-    const showLeaderUpdate = async () => {
-        let ans = await getLeader();
-        setShowLead(ans);
     }
 
 
@@ -321,19 +432,6 @@ export default function App() {
         )
     }
 
-    const StorageDisplay = () => {
-        return (
-            <Storage 
-                isConnected = {isConnected}
-                storeValHandle = {storedValUpdate} 
-                showValHandle = {showValUpdate} 
-                showVal = {showVal} 
-                storedPending = {storedPending}
-                storedDone = {storedDone}
-            />
-        )
-    }
-
     const HistoryDisplay = () => {
         return (
             <History 
@@ -344,40 +442,24 @@ export default function App() {
         )
     }
 
-    const LeaderDisplay = () =>{
-        return(
-            <Leader
-                isConnected = {isConnected}
-                commitValHandle = {commitValUpdate}
-                showLeader = {showLead}
-                commitDone = {commitDone}
-                commitPending = {commitPending}
-                revealVal = {revealVal}
-                revealPending = {revealPending}
-                revealAccepted = {revealAccepted}
-                showLeaderHandle = {showLeaderUpdate}
-                resetHandle = {resetHandle}
-                resetDone = {resetDone}
-                electionOn = {electionOn}
-                revealOn = {revealOn}
-                elected = {elected}
-            />
-        )
-    }
-
-
     return (
         // <BrowserRouter>
             <div className="App">
                 <Routes>
-                    <Route path = "/EE4032" element = {<Login isHaveMetamask = {haveMetamask} connectTo = {connectWallet} />}></Route>
+                    <Route path = "/" element = {<Login isHaveMetamask = {haveMetamask} connectTo = {connectWallet} />}></Route>
                     <Route path = "/profile" element = {<ProfileDisplay/>}></Route>
                     {/* <Route path = "/storage" element = {<StorageDisplay/>}></Route> */}
                     <Route path = "/history" element = {<HistoryDisplay/>}></Route>
-                    <Route path = "/leader" element = {<LeaderDisplay/>}></Route>
+
+                    <Route path="/employee/identity" element={<Identity />} />
+                    <Route path="/employee/vote" element={<Vote />} />
+                    <Route path="/hr/roster" element={<Roster />} />
+                    <Route path="/hr/tree" element={<Tree />} />
+                    <Route path="/hr/election" element={<Election />} />
+                    <Route path="/results" element={<Results />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </div>
         // </BrowserRouter>
     );
 }
-
