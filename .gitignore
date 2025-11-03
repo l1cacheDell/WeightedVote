@@ -28,3 +28,5 @@ circuits/build/
 .env
 
 public/
+
+db/tree.json
