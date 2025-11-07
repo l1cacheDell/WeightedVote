@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { insertIdentity } from "../../lib/db";
 import * as circomlibjs from "circomlibjs";
+import "./identity.css";
+import "../../global.css";
+import { GlobalToolBar } from "../../global";
 
 function rand32() {
   const a = new Uint8Array(32);
@@ -12,41 +15,79 @@ function rand32() {
 export default function Identity() {
   const [weight, setWeight] = useState(1);
   const [commitment, setCommitment] = useState("");
+  const [nullifier, setNullifier] = useState("");
+  const [trapdoor, setTrapdoor] = useState("");
 
   async function generateAndSave() {
-    // 生成本地身份秘密
-    const nullifier = rand32();
-    const trapdoor  = rand32();
-    // Poseidon
+    const nullifierBig = rand32();
+    const trapdoorBig  = rand32();
     const poseidon = await circomlibjs.buildPoseidon();
     const F = poseidon.F;
-    const c = poseidon([nullifier, trapdoor]);
+    const c = poseidon([nullifierBig, trapdoorBig]);
     const commitmentHex = "0x" + F.toString(c, 16);
 
     setCommitment(commitmentHex);
-    // 保存到 SQLite（这里先把权重也定下；也可以让 HR 在 roster 页设置）
+    setNullifier(nullifierBig.toString());
+    setTrapdoor(trapdoorBig.toString());
+
     await insertIdentity({ commitment: commitmentHex, weight });
-    alert("已写入本地 SQLite。请妥善备份你的 nullifier/trapdoor（本页未保存它们）！");
+
+    // 导出身份文件
+    const identityData = {
+      nullifier: nullifierBig.toString(),
+      trapdoor: trapdoorBig.toString(),
+      commitment: commitmentHex,
+      weight: weight
+    };
+
+    const blob = new Blob([JSON.stringify(identityData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `identity_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    alert("Identity generated and saved to local SQLite. Identity file downloaded. Please keep it safe!");
   }
 
   return (
-    <div style={{padding:20}}>
-      <h2>生成身份承诺（commitment）</h2>
-      <div>
-        <label>权重：</label>
-        <select value={weight} onChange={e => setWeight(Number(e.target.value))}>
-          <option value={1}>员工（1）</option>
-          <option value={3}>经理（3）</option>
-        </select>
-      </div>
-      <button onClick={generateAndSave}>生成 & 写入本地库</button>
-      {commitment && (
-        <div>
-          <p>你的 commitment：</p>
-          <code>{commitment}</code>
-          <p style={{color:"#c00"}}>注意：此处未保存 nullifier/trapdoor，请你自己保存！</p>
+    <div className="identity-background">
+      <div className="identity-card">
+        <div className="identity-title">Generate Identity Commitment</div>
+
+        <div className="identity-field">
+          <label className="identity-label">Weight</label>
+          <select
+            className="identity-select"
+            value={weight}
+            onChange={e => setWeight(Number(e.target.value))}
+          >
+            <option value={1}>Employee (1)</option>
+            <option value={3}>Manager (3)</option>
+          </select>
         </div>
-      )}
+
+        <div className="identity-actions">
+          <button className="identity-btn" onClick={generateAndSave}>
+            Generate and Save to Local Database
+          </button>
+        </div>
+
+        {commitment && (
+          <div className="identity-commitment">
+            <div className="identity-commitment-title">Your Commitment</div>
+            <div className="identity-commitment-code">{commitment}</div>
+            <div className="identity-warning">
+              Note: nullifier/trapdoor are not saved here. Please backup the downloaded identity file!
+            </div>
+          </div>
+        )}
+      </div>
+
+      <GlobalToolBar />
     </div>
   );
 }

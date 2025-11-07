@@ -1,0 +1,144 @@
+@import "../../global.css";
+
+.tree-background {
+    background-image: url("../../images/bgpic.jpg");
+    background-size: cover;
+    background-position: center;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.tree-card {
+    width: 90%;
+    max-width: 800px;
+    background-color: var(--BackgroundUncovered);
+    color: var(--MessageColorUncovered);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    padding: 28px 32px;
+}
+
+.tree-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+.tree-section {
+    margin-bottom: 24px;
+}
+
+.tree-field {
+    margin-bottom: 16px;
+}
+
+.tree-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--MessageColorUncovered);
+}
+
+.tree-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.tree-info-box {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 20px 0;
+}
+
+.tree-info-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.tree-info-item:last-child {
+    margin-bottom: 0;
+}
+
+.tree-info-label {
+    color: #6b7280;
+}
+
+.tree-info-value {
+    font-weight: 600;
+    color: var(--MessageColorUncovered);
+}
+
+.tree-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.tree-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    background-color: var(--TopbarColor);
+    color: #0b1f2a;
+}
+
+.tree-btn:hover:not(:disabled) {
+    opacity: 0.8;
+}
+
+.tree-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tree-btn-secondary {
+    background-color: #6b7280;
+    color: white;
+}
+
+.tree-result {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.tree-result-title {
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--MessageColorUncovered);
+}
+
+.tree-result-code {
+    word-break: break-all;
+    background: #0b1f2a;
+    color: #e6f3ff;
+    padding: 12px;
+    border-radius: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.tree-result-hint {
+    font-size: 14px;
+    color: #6b7280;
+}
+

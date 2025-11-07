@@ -1,0 +1,162 @@
+@import "../../global.css";
+
+.election-background {
+    background-image: url("../../images/bgpic.jpg");
+    background-size: cover;
+    background-position: center;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.election-card {
+    width: 90%;
+    max-width: 1000px;
+    background-color: var(--BackgroundUncovered);
+    color: var(--MessageColorUncovered);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    padding: 28px 32px;
+}
+
+.election-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+.election-section {
+    margin-bottom: 32px;
+}
+
+.election-section:last-child {
+    margin-bottom: 0;
+}
+
+.election-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--MessageColorUncovered);
+}
+
+.election-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.election-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.election-info-item {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.election-info-label {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.election-info-value {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--MessageColorUncovered);
+    word-break: break-all;
+}
+
+.election-info-value.code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+}
+
+.election-status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 12px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.election-field {
+    margin-bottom: 16px;
+}
+
+.election-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--MessageColorUncovered);
+}
+
+.election-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.election-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.election-status-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.election-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    background-color: var(--TopbarColor);
+    color: #0b1f2a;
+}
+
+.election-btn:hover:not(:disabled) {
+    opacity: 0.8;
+}
+
+.election-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.election-btn-secondary {
+    background-color: #6b7280;
+    color: white;
+}
+
+.election-empty {
+    text-align: center;
+    padding: 40px;
+    color: #9ca3af;
+}
+
