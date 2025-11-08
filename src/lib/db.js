@@ -112,7 +112,7 @@ export async function getLatestElection() {
 
 export async function listElections() {
   const db = await openDb();
-  const res = db.exec("SELECT id, name, merkle_root, external_nullifier, status, created_at FROM elections ORDER BY id DESC");
+  const res = db.exec("SELECT id, name, merkle_root, external_nullifier, status FROM elections ORDER BY id DESC");
   return res[0]?.values || [];
 }
 
