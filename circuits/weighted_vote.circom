@@ -3,72 +3,68 @@ pragma circom 2.1.5;
 include "poseidon.circom";
 
 template WeightedVote(depth) {
-    // private
+    // 私有输入
     signal input identity_nullifier;
     signal input identity_trapdoor;
     signal input weight;
     signal input pathElements[depth];
     signal input pathIndices[depth];
 
-    // public
+    // 公共输入
     signal input merkleRoot;
     signal input externalNullifier;
     signal input option;
+    
+    // 输出
     signal output nullifierHash;
     signal output outWeight;
 
-    // 身份承诺 & 叶子
-    component pId = Poseidon(2);
-    pId.inputs[0] <== identity_nullifier;
-    pId.inputs[1] <== identity_trapdoor;
-    signal identityCommitment <== pId.out;
+    // 1. 计算身份承诺: commitment = Poseidon(nullifier, trapdoor)
+    component identityHasher = Poseidon(2);
+    identityHasher.inputs[0] <== identity_nullifier;
+    identityHasher.inputs[1] <== identity_trapdoor;
+    signal identityCommitment <== identityHasher.out;
 
-    component pLeaf = Poseidon(2);
-    pLeaf.inputs[0] <== identityCommitment;
-    pLeaf.inputs[1] <== weight;
-    signal leaf <== pLeaf.out;
+    // 2. 计算叶子节点: leaf = Poseidon(commitment, weight)
+    component leafHasher = Poseidon(2);
+    leafHasher.inputs[0] <== identityCommitment;
+    leafHasher.inputs[1] <== weight;
+    signal leaf <== leafHasher.out;
 
-    // Merkle 路径
-    signal cur[depth + 1];
-    signal left[depth];
-    signal right[depth];
-    signal diffL[depth];
-    signal diffR[depth];
-    component hp[depth];
+    // 3. 验证Merkle路径
+    signal merkleNodes[depth + 1];
+    merkleNodes[0] <== leaf;
 
-    cur[0] <== leaf;
-
+    component merkleHashers[depth];
+    
     for (var i = 0; i < depth; i++) {
-        // s ∈ {0,1}
+        // 确保pathIndices[i]是0或1
         pathIndices[i] * (pathIndices[i] - 1) === 0;
-
-        // 只用一个乘法的选择器写法
-        diffL[i]  <== pathElements[i] - cur[i];   // sib - cur
-        left[i]   <== cur[i] + pathIndices[i] * diffL[i];
-
-        diffR[i]  <== cur[i] - pathElements[i];   // cur - sib
-        right[i]  <== pathElements[i] + pathIndices[i] * diffR[i];
-
-        hp[i] = Poseidon(2);
-        hp[i].inputs[0] <== left[i];
-        hp[i].inputs[1] <== right[i];
-        cur[i + 1] <== hp[i].out;
+        
+        merkleHashers[i] = Poseidon(2);
+        
+        // 根据pathIndices[i]决定左右子树的顺序
+        // pathIndices[i] = 0: 当前节点在左边，兄弟节点在右边  
+        // pathIndices[i] = 1: 当前节点在右边，兄弟节点在左边
+        merkleHashers[i].inputs[0] <== merkleNodes[i] + pathIndices[i] * (pathElements[i] - merkleNodes[i]);
+        merkleHashers[i].inputs[1] <== pathElements[i] + pathIndices[i] * (merkleNodes[i] - pathElements[i]);
+        
+        merkleNodes[i + 1] <== merkleHashers[i].out;
     }
 
-    // 根一致
-    cur[depth] === merkleRoot;
+    // 4. 验证Merkle根
+    merkleNodes[depth] === merkleRoot;
 
-    // nullifierHash
-    component pN = Poseidon(2);
-    pN.inputs[0] <== identity_nullifier;
-    pN.inputs[1] <== externalNullifier;
-    nullifierHash <== pN.out;
+    // 5. 计算nullifierHash防止双重投票
+    component nullifierHasher = Poseidon(2);
+    nullifierHasher.inputs[0] <== identity_nullifier;
+    nullifierHasher.inputs[1] <== externalNullifier;
+    nullifierHash <== nullifierHasher.out;
 
-    // 权重限制
+    // 6. 验证权重只能是1或3
     (weight - 1) * (weight - 3) === 0;
     outWeight <== weight;
-
-    // option 仅公开，不参与约束
 }
 
+// 主组件：深度为20的Merkle树
 component main = WeightedVote(20);

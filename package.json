@@ -26,7 +26,10 @@
     "start": "react-app-rewired start",
     "build": "react-app-rewired build",
     "test": "react-app-rewired test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "generate-commits": "node tests/generate_commit.js",
+    "build-tree": "node tests/build_tree.js",
+    "test-vote": "node tests/test_vote.js"
   },
   "eslintConfig": {
     "extends": [
