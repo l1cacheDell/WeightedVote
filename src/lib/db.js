@@ -213,6 +213,41 @@ export async function checkNullifierUsed(electionId, nullifier_hash) {
   return Number(result.count) > 0;
 }
 
+export async function wipeDbFile() {
+  if (db) { try { db.close(); } catch {} db = null; }
+  // await del(DB_KEY);           // 只删这一条 key
+  // 可选：立刻重建一份空库，避免下一次 openDb 首次写入前的空白期
+  SQL = SQL || await initSqlJs({ locateFile: f => `/sql-wasm.wasm` });
+  db = new SQL.Database();
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS identities(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      commitment TEXT UNIQUE NOT NULL,
+      weight INTEGER CHECK(weight IN (1,3)) NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS elections(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      merkle_root TEXT,
+      external_nullifier TEXT,
+      contract_address TEXT,
+      verifier_address TEXT,
+      status TEXT CHECK(status IN ('draft','open','closed')) DEFAULT 'draft',
+      tree_json TEXT
+    );
+    CREATE TABLE IF NOT EXISTS votes_local(
+      election_id INTEGER,
+      nullifier_hash TEXT,
+      option INTEGER,
+      weight INTEGER,
+      tx_hash TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await saveDb();
+}
+
 export async function exportDbFile() {
   const db = await openDb();
   const data = db.export();
