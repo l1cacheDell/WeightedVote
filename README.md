@@ -75,3 +75,28 @@ public/zk/
 ```bash
 bash compile.sh
 ```
+
+Then, export the Verifier.sol by using the compilation output:
+
+```bash
+snarkjs zkey export solidityverifier public/zk/circuit_final.zkey src/contracts/Verifier.sol
+```
+
+
+# Deploy Contract
+
+### Verifier Contract deploy records:
+
+- Sourcify verification successful. https://repo.sourcify.dev/11155111/0x18B8DBa21C39CfD93FeE3172a1aEf0e06CC6a900/
+- Routescan verification successful. https://testnet.routescan.io/address/0x18B8DBa21C39CfD93FeE3172a1aEf0e06CC6a900/contract/11155111/code
+
+Address: 0x18B8DBa21C39CfD93FeE3172a1aEf0e06CC6a900
+
+### WeightedVoteLive Contract deploy records:
+
+**Notice: When deploy the `WeightedVoteLive.sol`, you need to pass the deployed address of previous `Verifier.sol`, to deploy this one.**
+
+- Sourcify verification successful. https://repo.sourcify.dev/11155111/0x276a60f66Ae6e3d5AC4B47B1c592edf177bDE3B2/
+- Routescan verification successful. https://testnet.routescan.io/address/0x276a60f66Ae6e3d5AC4B47B1c592edf177bDE3B2/contract/11155111/code
+
+Address: 0x276a60f66Ae6e3d5AC4B47B1c592edf177bDE3B2

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getLatestElection, getVoteResults, listElections } from "../lib/db";
+import { getLatestElection, getVoteResults, getVoteTotals, listElections } from "../lib/db";
 import "./results.css";
 import "../global.css";
 import { GlobalToolBar } from "../global";
@@ -51,8 +51,13 @@ export default function Results() {
   async function loadResults(electionId) {
     setLoading(true);
     try {
-      const voteResults = await getVoteResults(electionId);
+      const [voteResults, totals] = await Promise.all([
+        getVoteResults(electionId),
+        getVoteTotals(electionId),
+      ]);
       setResults(voteResults);
+      setTotalVotes(totals.votes);        // 真正的“投了多少张票（行数）”
+      setTotalWeight(totals.totalWeight); // 权重总和
 
       // 计算统计信息
       let votes = 0;
@@ -101,7 +106,7 @@ export default function Results() {
             >
               {elections.map((e) => (
                 <option key={e[0]} value={e[0]}>
-                  {e[1]} - {e[5]}
+                  {e[1]} - {e[4]}
                 </option>
               ))}
             </select>

@@ -67,4 +67,5 @@ template WeightedVote(depth) {
 }
 
 // 主组件：深度为20的Merkle树
-component main = WeightedVote(20);
+component main { public [ merkleRoot, externalNullifier, option ] } = WeightedVote(20);
+

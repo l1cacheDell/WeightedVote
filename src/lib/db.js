@@ -150,32 +150,67 @@ export async function deleteIdentity(id) {
 
 export async function insertVote({ election_id, nullifier_hash, option, weight, tx_hash }) {
   const db = await openDb();
-  const stmt = db.prepare("INSERT INTO votes_local(election_id, nullifier_hash, option, weight, tx_hash) VALUES(?,?,?,?,?)");
-  stmt.run([election_id, nullifier_hash, option, weight, tx_hash || null]);
+  const stmt = db.prepare(
+    "INSERT INTO votes_local(election_id, nullifier_hash, option, weight, tx_hash) VALUES(?,?,?,?,?)"
+  );
+  stmt.run([election_id, String(nullifier_hash).toLowerCase(), option, weight, tx_hash || null]);
   stmt.free();
   await saveDb();
 }
 
+// export async function getVoteResults(electionId) {
+//   const db = await openDb();
+//   const res = db.exec("SELECT option, SUM(weight) as total_weight FROM votes_local WHERE election_id = ? GROUP BY option ORDER BY option ASC");
+//   if (res[0] && res[0].values.length > 0) {
+//     const results = {};
+//     res[0].values.forEach(row => {
+//       results[row[0]] = row[1];
+//     });
+//     return results;
+//   }
+//   return {};
+// }
+
 export async function getVoteResults(electionId) {
   const db = await openDb();
-  const res = db.exec("SELECT option, SUM(weight) as total_weight FROM votes_local WHERE election_id = ? GROUP BY option ORDER BY option ASC");
-  if (res[0] && res[0].values.length > 0) {
-    const results = {};
-    res[0].values.forEach(row => {
-      results[row[0]] = row[1];
-    });
-    return results;
+  const stmt = db.prepare(
+    "SELECT option, SUM(weight) AS total_weight \
+     FROM votes_local WHERE election_id = ? \
+     GROUP BY option ORDER BY option ASC"
+  );
+  stmt.bind([Number(electionId)]);
+  const results = {};
+  while (stmt.step()) {
+    const row = stmt.getAsObject();
+    results[row.option] = Number(row.total_weight);
   }
-  return {};
+  stmt.free();
+  return results; // 形如 {0: 3, 1: 7}
+}
+
+export async function getVoteTotals(electionId) {
+  const db = await openDb();
+  const stmt = db.prepare(
+    "SELECT COUNT(*) AS votes, COALESCE(SUM(weight),0) AS totalWeight \
+     FROM votes_local WHERE election_id = ?"
+  );
+  stmt.bind([Number(electionId)]);
+  stmt.step();
+  const row = stmt.getAsObject();
+  stmt.free();
+  return { votes: Number(row.votes || 0), totalWeight: Number(row.totalWeight || 0) };
 }
 
 export async function checkNullifierUsed(electionId, nullifier_hash) {
   const db = await openDb();
-  const stmt = db.prepare("SELECT COUNT(*) as count FROM votes_local WHERE election_id = ? AND nullifier_hash = ?");
-  stmt.bind([electionId, nullifier_hash]);
+  const stmt = db.prepare(
+    "SELECT COUNT(*) as count FROM votes_local WHERE election_id = ? AND nullifier_hash = ?"
+  );
+  stmt.bind([electionId, String(nullifier_hash).toLowerCase()]);
+  stmt.step();
   const result = stmt.getAsObject();
   stmt.free();
-  return result.count > 0;
+  return Number(result.count) > 0;
 }
 
 export async function exportDbFile() {
