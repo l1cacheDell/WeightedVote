@@ -1,0 +1,93 @@
+@import "../../global.css";
+
+.identity-background{
+    background-image: url("../../images/bgpic.jpg");
+    background-size: cover;
+    background-position: center;
+
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.identity-card{
+    width: 64%;
+    max-width: 960px;
+    background-color: var(--BackgroundUncovered);
+    color: var(--MessageColorUncovered);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    padding: 28px 32px;
+}
+
+.identity-title{
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 18px;
+}
+
+.identity-field{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 0 20px 0;
+}
+
+.identity-label{
+    min-width: 56px;
+}
+
+.identity-select{
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.identity-actions{
+    display: flex;
+    justify-content: flex-start;
+}
+
+.identity-btn{
+    height: 42px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--TopbarColor);
+    color: #0b1f2a;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.identity-commitment{
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.identity-commitment-title{
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.identity-commitment-code{
+    word-break: break-all;
+    background: #0b1f2a;
+    color: #e6f3ff;
+    padding: 12px;
+    border-radius: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.identity-warning{
+    margin-top: 10px;
+    color: #c33;
+}
+
+

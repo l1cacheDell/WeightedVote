@@ -1,0 +1,154 @@
+@import "../../global.css";
+
+.roster-background {
+    background-image: url("../../images/bgpic.jpg");
+    background-size: cover;
+    background-position: center;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.roster-card {
+    width: 90%;
+    max-width: 1200px;
+    background-color: var(--BackgroundUncovered);
+    color: var(--MessageColorUncovered);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    padding: 28px 32px;
+}
+
+.roster-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+.roster-section {
+    margin-bottom: 32px;
+}
+
+.roster-section:last-child {
+    margin-bottom: 0;
+}
+
+.roster-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--MessageColorUncovered);
+}
+
+.roster-file-input {
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.roster-hint {
+    font-size: 14px;
+    color: #666;
+}
+
+.roster-table-container {
+    overflow-x: auto;
+}
+
+.roster-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+}
+
+.roster-table th,
+.roster-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.roster-table th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: var(--MessageColorUncovered);
+}
+
+.roster-commitment {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    word-break: break-all;
+    max-width: 300px;
+}
+
+.roster-weight-select {
+    padding: 4px 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+}
+
+.roster-weight-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.roster-weight-badge.employee {
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
+.roster-weight-badge.manager {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.roster-btn-small {
+    padding: 6px 12px;
+    margin-right: 8px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.roster-btn-small:hover {
+    opacity: 0.8;
+}
+
+.roster-btn-edit {
+    background-color: var(--TopbarColor);
+    color: #0b1f2a;
+}
+
+.roster-btn-save {
+    background-color: #10b981;
+    color: white;
+}
+
+.roster-btn-cancel {
+    background-color: #6b7280;
+    color: white;
+}
+
+.roster-btn-delete {
+    background-color: #ef4444;
+    color: white;
+}
+
+.roster-empty {
+    text-align: center;
+    padding: 40px;
+    color: #9ca3af;
+}
+

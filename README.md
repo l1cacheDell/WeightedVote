@@ -21,38 +21,82 @@ npm install     # or you can use pnpm
 npm start
 ```
 
+
+# How to compile & run circom curcuit
+## Manually
 To compile the circuits:
 
 ```bash
-cargo install --locked --git https://github.com/iden3/circom circom
-pnpm add -D snarkjs
-pnpm add -D circomlib
+# installation of circom compiler
+npm install -g circom
 
-circom circuits/weighted_vote.circom \
-  --r1cs --wasm --sym \
-  -l node_modules/circomlib/circuits \
-  -o circuits/build
+npm install snarkjs
+
+mkdir -p public/zk
+
+circom circuits/weighted_vote.circom --r1cs --wasm --sym -o public/zk
+
+# This will yield:
+# - public/zk/weighted_vote.r1cs (约束系统)
+# - public/zk/weighted_vote_js/weighted_vote.wasm (witness生成器)
+# - public/zk/weighted_vote.sym (符号文件)
 ```
 
 Generate Groth16's zkey
 
 ```bash
-pnpm dlx snarkjs powersoftau new bn128 16 circuits/build/pot16_0000.ptau
-pnpm dlx snarkjs powersoftau contribute circuits/build/pot16_0000.ptau circuits/build/pot16_0001.ptau
-pnpm dlx snarkjs powersoftau prepare phase2 circuits/build/pot16_0001.ptau circuits/build/pot16_final.ptau
+cd public/zk
 
-pnpm dlx snarkjs groth16 setup \
-  circuits/build/weighted_vote.r1cs \
-  circuits/build/pot16_final.ptau \
-  circuits/build/weighted_vote_0000.zkey
-pnpm dlx snarkjs zkey contribute circuits/build/weighted_vote_0000.zkey circuits/build/weighted_vote_final.zkey --name="zkey1" -v
+# 生成Powers of Tau (通用设置)
+snarkjs powersoftau new bn128 14 pot14_0000.ptau -v
+snarkjs powersoftau contribute pot14_0000.ptau pot14_0001.ptau --name="First contribution" -v
 
-pnpm dlx snarkjs zkey export verificationkey circuits/build/weighted_vote_final.zkey circuits/build/verification_key.json
+# 生成电路特定的zkey
+snarkjs powersoftau prepare phase2 pot14_0001.ptau pot14_final.ptau -v
+snarkjs groth16 setup weighted_vote.r1cs pot14_final.ptau circuit_0000.zkey
+snarkjs zkey contribute circuit_0000.zkey circuit_final.zkey --name="First contribution" -v
+
+# 导出验证密钥
+snarkjs zkey export verificationkey circuit_final.zkey verification_key.json
 ```
 
-Copy to `public/`:
+The final constructure:
+
+```
+public/zk/
+├── weighted_vote.wasm          # witness生成器
+├── circuit_final.zkey          # 证明密钥
+├── verification_key.json       # 验证密钥
+└── weighted_vote.r1cs          # 约束系统(可选保留)
+```
+
+## Script
 
 ```bash
-cp circuits/build/weighted_vote_js/weighted_vote.wasm public/zk/weighted_vote.wasm
-cp circuits/build/weighted_vote_final.zkey        public/zk/circuit_final.zkey
+bash compile.sh
 ```
+
+Then, export the Verifier.sol by using the compilation output:
+
+```bash
+snarkjs zkey export solidityverifier public/zk/circuit_final.zkey src/contracts/Verifier.sol
+```
+
+
+# Deploy Contract
+
+### Verifier Contract deploy records:
+
+- Sourcify verification successful. https://repo.sourcify.dev/11155111/0x18B8DBa21C39CfD93FeE3172a1aEf0e06CC6a900/
+- Routescan verification successful. https://testnet.routescan.io/address/0x18B8DBa21C39CfD93FeE3172a1aEf0e06CC6a900/contract/11155111/code
+
+Address: 0x18B8DBa21C39CfD93FeE3172a1aEf0e06CC6a900
+
+### WeightedVoteLive Contract deploy records:
+
+**Notice: When deploy the `WeightedVoteLive.sol`, you need to pass the deployed address of previous `Verifier.sol`, to deploy this one.**
+
+- Sourcify verification successful. https://repo.sourcify.dev/11155111/0x276a60f66Ae6e3d5AC4B47B1c592edf177bDE3B2/
+- Routescan verification successful. https://testnet.routescan.io/address/0x276a60f66Ae6e3d5AC4B47B1c592edf177bDE3B2/contract/11155111/code
+
+Address: 0x276a60f66Ae6e3d5AC4B47B1c592edf177bDE3B2
